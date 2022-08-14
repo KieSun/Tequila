@@ -5,28 +5,42 @@ import (
 	"net/http"
 )
 
-type route struct {
+type routeGroup struct {
+	name       string
 	handleFunc map[string]http.HandlerFunc
 }
 
-func (r *route) Add(name string, handlerFunc http.HandlerFunc) {
+func (r *routeGroup) Add(name string, handlerFunc http.HandlerFunc) {
 	r.handleFunc[name] = handlerFunc
 }
 
+type router struct {
+	routeGroups []*routeGroup
+}
+
+func (r *router) Group(name string) *routeGroup {
+	group := &routeGroup{name: name, handleFunc: make(map[string]http.HandlerFunc)}
+	r.routeGroups = append(r.routeGroups, group)
+	return group
+}
+
 type Engine struct {
-	route
+	router
 }
 
 func New() *Engine {
 	return &Engine{
-		route{handleFunc: make(map[string]http.HandlerFunc)},
+		router{},
 	}
 }
 
 func (e *Engine) Run() {
-	for key, value := range e.handleFunc {
-		http.HandleFunc(key, value)
+	for _, group := range e.routeGroups {
+		for key, value := range group.handleFunc {
+			http.HandleFunc("/"+group.name+key, value)
+		}
 	}
+
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
 		log.Fatal(err)
