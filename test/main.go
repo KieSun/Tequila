@@ -10,7 +10,10 @@ func main() {
 	engine := tequila.New()
 	user := engine.Group("user")
 	user.Post("/1", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Printf("123123")
+		fmt.Printf("post")
+	})
+	user.Get("/1", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Printf("get")
 	})
 	engine.Run()
 }

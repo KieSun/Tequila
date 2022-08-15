@@ -6,25 +6,37 @@ import (
 	"net/http"
 )
 
+const Any = "Any"
+
 type routeGroup struct {
 	name             string
-	handleFunc       map[string]http.HandlerFunc
+	handleFuncMap    map[string]map[string]http.HandlerFunc
 	handleMethodFunc map[string][]string
 }
 
+func (r *routeGroup) handle(name string, method string, handlerFunc http.HandlerFunc) {
+	_, ok := r.handleFuncMap[name]
+	if !ok {
+		r.handleFuncMap[name] = make(map[string]http.HandlerFunc)
+	}
+	_, ok = r.handleFuncMap[name][method]
+	if ok {
+		panic("重复路由")
+	}
+	r.handleFuncMap[name][method] = handlerFunc
+	r.handleMethodFunc[method] = append(r.handleMethodFunc[method], name)
+}
+
 func (r *routeGroup) Any(name string, handlerFunc http.HandlerFunc) {
-	r.handleFunc[name] = handlerFunc
-	r.handleMethodFunc["Any"] = append(r.handleMethodFunc["Any"], name)
+	r.handle(name, Any, handlerFunc)
 }
 
 func (r *routeGroup) Get(name string, handlerFunc http.HandlerFunc) {
-	r.handleFunc[name] = handlerFunc
-	r.handleMethodFunc[http.MethodGet] = append(r.handleMethodFunc[http.MethodGet], name)
+	r.handle(name, http.MethodGet, handlerFunc)
 }
 
 func (r *routeGroup) Post(name string, handlerFunc http.HandlerFunc) {
-	r.handleFunc[name] = handlerFunc
-	r.handleMethodFunc[http.MethodPost] = append(r.handleMethodFunc[http.MethodPost], name)
+	r.handle(name, http.MethodPost, handlerFunc)
 }
 
 type router struct {
@@ -34,7 +46,7 @@ type router struct {
 func (r *router) Group(name string) *routeGroup {
 	group := &routeGroup{
 		name:             name,
-		handleFunc:       make(map[string]http.HandlerFunc),
+		handleFuncMap:    make(map[string]map[string]http.HandlerFunc),
 		handleMethodFunc: make(map[string][]string),
 	}
 	r.routeGroups = append(r.routeGroups, group)
@@ -54,15 +66,15 @@ func New() *Engine {
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.routeGroups {
-		for route, fn := range group.handleFunc {
-			url := "/" + group.name + route
+		for name, funcMap := range group.handleFuncMap {
+			url := "/" + group.name + name
 			if r.RequestURI == url {
-				_, ok := group.handleMethodFunc["Any"]
+				fn, ok := funcMap[Any]
 				if ok {
 					fn(w, r)
 					return
 				}
-				_, ok = group.handleMethodFunc[method]
+				fn, ok = funcMap[method]
 				if ok {
 					fn(w, r)
 					return
