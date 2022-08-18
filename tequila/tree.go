@@ -5,8 +5,9 @@ import (
 )
 
 type treeNode struct {
-	name     string
-	children []*treeNode
+	name       string
+	children   []*treeNode
+	routerName string
 }
 
 func (t *treeNode) Put(str string) {
@@ -36,6 +37,7 @@ func (t *treeNode) Put(str string) {
 
 func (t *treeNode) Get(str string) *treeNode {
 	s := strings.Split(str, "/")
+	routerName := ""
 	for index, name := range s {
 		if index == 0 {
 			continue
@@ -44,6 +46,8 @@ func (t *treeNode) Get(str string) *treeNode {
 		for _, node := range children {
 			if node.name == name || node.name == "*" || strings.Contains(node.name, ":") {
 				t = node
+				routerName += "/" + node.name
+				node.routerName = routerName
 				if index == len(s)-1 {
 					return node
 				}

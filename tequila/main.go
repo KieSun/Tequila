@@ -12,6 +12,7 @@ type routeGroup struct {
 	name             string
 	handleFuncMap    map[string]map[string]http.HandlerFunc
 	handleMethodFunc map[string][]string
+	treeNode         *treeNode
 }
 
 func (r *routeGroup) handle(name string, method string, handlerFunc http.HandlerFunc) {
@@ -25,6 +26,7 @@ func (r *routeGroup) handle(name string, method string, handlerFunc http.Handler
 	}
 	r.handleFuncMap[name][method] = handlerFunc
 	r.handleMethodFunc[method] = append(r.handleMethodFunc[method], name)
+	r.treeNode.Put(name)
 }
 
 func (r *routeGroup) Any(name string, handlerFunc http.HandlerFunc) {
@@ -48,6 +50,7 @@ func (r *router) Group(name string) *routeGroup {
 		name:             name,
 		handleFuncMap:    make(map[string]map[string]http.HandlerFunc),
 		handleMethodFunc: make(map[string][]string),
+		treeNode:         &treeNode{name: "/", children: make([]*treeNode, 0)},
 	}
 	r.routeGroups = append(r.routeGroups, group)
 	return group
@@ -66,23 +69,21 @@ func New() *Engine {
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.routeGroups {
-		for name, funcMap := range group.handleFuncMap {
-			url := "/" + group.name + name
-			if r.RequestURI == url {
-				fn, ok := funcMap[Any]
-				if ok {
-					fn(w, r)
-					return
-				}
-				fn, ok = funcMap[method]
-				if ok {
-					fn(w, r)
-					return
-				}
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				fmt.Print("not allowed")
+		routerName := SubString(r.RequestURI, group.name)
+		node := group.treeNode.Get(routerName)
+		if node != nil {
+			fn, ok := group.handleFuncMap[node.routerName][Any]
+			if ok {
+				fn(w, r)
 				return
 			}
+			fn, ok = group.handleFuncMap[node.routerName][method]
+			if ok {
+				fn(w, r)
+				return
+			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Print("not allowed")
 		}
 	}
 	w.WriteHeader(http.StatusNotFound)

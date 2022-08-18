@@ -10,8 +10,8 @@ func TestTree(t *testing.T) {
 		name:     "/",
 		children: make([]*treeNode, 0),
 	}
-	root.Put("/user/id")
+	root.Put("/user/:id")
 
-	node := root.Get("/user/id")
-	fmt.Print(node)
+	node := root.Get("/user/1")
+	fmt.Print(node.routerName)
 }
