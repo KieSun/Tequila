@@ -8,6 +8,7 @@ type treeNode struct {
 	name       string
 	children   []*treeNode
 	routerName string
+	isEnd      bool
 }
 
 func (t *treeNode) Put(str string) {
@@ -26,7 +27,7 @@ func (t *treeNode) Put(str string) {
 			}
 		}
 		if !isMatch {
-			node := &treeNode{name: name, children: make([]*treeNode, 0)}
+			node := &treeNode{name: name, children: make([]*treeNode, 0), isEnd: index == len(str)-1}
 			children = append(t.children, node)
 			t.children = children
 			t = node
