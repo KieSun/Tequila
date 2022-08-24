@@ -13,9 +13,6 @@ type User struct {
 func main() {
 	engine := tequila.New()
 	user := engine.Group("user")
-	//user.Post("/1", func(writer http.ResponseWriter, request *http.Request) {
-	//	fmt.Printf("post")
-	//})
 	user.Use(func(handlerFunc tequila.HandlerFunc) tequila.HandlerFunc {
 		return func(ctx *tequila.Context) {
 			handlerFunc(ctx)

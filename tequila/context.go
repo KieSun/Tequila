@@ -7,8 +7,9 @@ import (
 )
 
 type Context struct {
-	W http.ResponseWriter
-	R *http.Request
+	W      http.ResponseWriter
+	R      *http.Request
+	engine *Engine
 }
 
 func (ctx *Context) Json(status int, data any) error {

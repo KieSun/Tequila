@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 )
 
 const Any = "Any"
@@ -58,6 +59,7 @@ func (r *routeGroup) Post(name string, handlerFunc HandlerFunc) {
 
 type router struct {
 	routeGroups []*routeGroup
+	engine      *Engine
 }
 
 func (r *router) Group(name string) *routeGroup {
@@ -73,24 +75,42 @@ func (r *router) Group(name string) *routeGroup {
 
 type Engine struct {
 	router
+	pool sync.Pool
 }
 
 func New() *Engine {
-	return &Engine{
-		router{},
+	engine := &Engine{
+		router: router{},
 	}
+	engine.pool.New = func() any {
+		return &Context{engine: engine}
+	}
+	return engine
+}
+
+func Default() *Engine {
+	engine := New()
+	return engine
+}
+
+func (e *Engine) allocateContext() any {
+	return &Context{engine: e}
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := e.pool.Get().(*Context)
+	ctx.W = w
+	ctx.R = r
+	e.httpRequestHandle(ctx, w, r)
+	e.pool.Put(ctx)
+}
+
+func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.routeGroups {
 		routerName := SubString(r.RequestURI, group.name)
 		node := group.treeNode.Get(routerName)
 		if node != nil {
-			ctx := &Context{
-				W: w,
-				R: r,
-			}
 			fn, ok := group.handleFuncMap[node.routerName][Any]
 			if ok {
 				group.HandleMiddleware(fn, ctx)
