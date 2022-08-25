@@ -23,8 +23,10 @@ func main() {
 			handlerFunc(ctx)
 		}
 	})
-	user.Get("/:id", func(c *tequila.Context) {
+	user.Get("/id", func(c *tequila.Context) {
 		err := c.Json(http.StatusOK, &User{Name: "yck"})
+		value := c.GetQuery("id")
+		fmt.Print(value)
 		if err != nil {
 			fmt.Print(err)
 		}

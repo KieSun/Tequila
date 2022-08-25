@@ -108,7 +108,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.routeGroups {
-		routerName := SubString(r.RequestURI, group.name)
+		routerName := SubString(r.URL.Path, group.name)
 		node := group.treeNode.Get(routerName)
 		if node != nil {
 			fn, ok := group.handleFuncMap[node.routerName][Any]
