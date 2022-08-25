@@ -2,6 +2,7 @@ package tequila
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 )
@@ -33,4 +34,13 @@ func (ctx *Context) initQueryCache() {
 	if ctx.queryCache == nil {
 		ctx.queryCache = ctx.R.URL.Query()
 	}
+}
+
+func (ctx *Context) DealJson(obj any) error {
+	body := ctx.R.Body()
+	if body == nil {
+		return errors.New("invalid request")
+	}
+	decoder := json.NewDecoder(body)
+	return decoder.Decode(obj)
 }
